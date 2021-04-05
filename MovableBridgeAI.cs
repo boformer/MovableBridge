@@ -20,7 +20,10 @@ namespace MovableBridge {
         public const ushort FLAG_SHIP_PASSING_BRIDGE = 0b_0010_0000_0000_0000;
 
         private const byte kMinClosedTicks = 4;
-
+        
+        public byte m_PreOpeningDuration = 2;
+        public byte m_OpeningDuration = 1;
+        public byte m_ClosingDuration = 1;
         public float m_bridgeClearance = 4f;
 
         public static ushort GetBridgeState(ref Building data) {
@@ -74,70 +77,71 @@ namespace MovableBridge {
                 if (timer < byte.MaxValue) timer++;
 
                 if (shipNearBridge && timer > kMinClosedTicks) {
-                    Debug.Log("closed, ship near bridge, timer greater 2, preparing to open bridge");
+                    //Debug.Log("closed, ship near bridge, timer greater 2, preparing to open bridge");
                     state = STATE_BRIDGE_WAITING_FOR_OPEN;
                     timer = 0;
                 }
             } else if (state == STATE_BRIDGE_WAITING_FOR_OPEN) {
                 timer++;
-                Debug.Log("waiting for open, increasing timer");
+                //Debug.Log("waiting for open, increasing timer");
 
-                if (timer > 1) {
-                    Debug.Log("waiting for open, timer greater 1");
+                if (timer >= m_PreOpeningDuration) {
+                    //Debug.Log("waiting for open, timer greater 1");
 
                     if (shipNearBridge) {
-                        Debug.Log("ship near bridge, opening bridge");
+                        //Debug.Log("ship near bridge, opening bridge");
                         state = STATE_BRIDGE_OPENING;
                         timer = 0;
                     } else {
-                        Debug.Log("no ship near bridge, back to closed state");
+                        //Debug.Log("no ship near bridge, back to closed state");
                         state = STATE_BRIDGE_CLOSED;
                         timer = 0;
                     }
                 }
             } else if (state == STATE_BRIDGE_OPENING) {
                 timer++;
-                Debug.Log("opening, increasing timer");
+                //Debug.Log("opening, increasing timer");
 
                 // TODO instead, wait for animation to finish (check Animator)
 
-                if (timer > 0) {
-                    Debug.Log("opening, timer greater 0, bridge is open");
+                if (timer >= m_OpeningDuration) {
+                    //Debug.Log("opening, timer greater 0, bridge is open");
                     state = STATE_BRIDGE_OPEN;
                     timer = 0;
                 }
 
             } else if (state == STATE_BRIDGE_OPEN) {
                 timer++;
-                Debug.Log("open, increasing timer");
+                //Debug.Log("open, increasing timer");
 
                 if (timer > 0) {
                     if (shipPassingBridge) {
-                        Debug.Log("open, ships still passing, waiting for close");
+                        //Debug.Log("open, ships still passing, waiting for close");
                         state = STATE_BRIDGE_WAITING_FOR_CLOSE;
                         timer = 0;
                     } else {
-                        Debug.Log("open, no ships passing bridge, closing");
+                        //Debug.Log("open, no ships passing bridge, closing");
                         state = STATE_BRIDGE_CLOSING;
                         timer = 0;
                     }
                 }
             } else if (state == STATE_BRIDGE_WAITING_FOR_CLOSE) {
-                Debug.Log("waiting for close");
+                //Debug.Log("waiting for close");
 
                 if (!shipPassingBridge) {
-                    Debug.Log("waiting for close, no ships passing bridge, closing");
+                    //Debug.Log("waiting for close, no ships passing bridge, closing");
                     state = STATE_BRIDGE_CLOSING;
                     timer = 0;
-                } else {
-                    Debug.Log("waiting for close, ships still passing bridge");
                 }
+                //} else {
+                //    Debug.Log("waiting for close, ships still passing bridge");
+                //}
             } else if (state == STATE_BRIDGE_CLOSING) {
                 timer++;
-                Debug.Log("closing, increasing timer");
+                //Debug.Log("closing, increasing timer");
 
-                if (timer > 0) {
-                    Debug.Log("closing, timer greater 0, bridge is closed");
+                if (timer >= m_ClosingDuration) {
+                    //Debug.Log("closing, timer greater 0, bridge is closed");
                     state = STATE_BRIDGE_CLOSED;
                     timer = 0;
                 }
@@ -167,7 +171,6 @@ namespace MovableBridge {
             m_info.SetRenderParameters(position, rotation, buildingState, objectIndex, animationState, color);
         }
 
-        // TODO
         private void UpdateTrafficLights(ushort buildingID, ref Building data, bool green) {
             NetManager netManager = NetManager.instance;
 

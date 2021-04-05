@@ -1,4 +1,5 @@
-﻿using ICities;
+﻿#if DEBUG
+using ICities;
 using UnityEngine;
 
 namespace MovableBridge {
@@ -20,3 +21,4 @@ namespace MovableBridge {
         }
     }
 }
+#endif

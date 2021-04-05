@@ -4,14 +4,17 @@ namespace MovableBridge {
     [HarmonyPatch(typeof(NetInfo), "InitializePrefab")]
     public static class NetInfoInitializePrefabPatch {
         public static void Prefix(NetInfo __instance) {
-            if (__instance.name == "draw_bridge_large_road.Draw Bridge Large Road_Data"
-                || __instance.name == "draw_bridge_large_road_inv.Draw Bridge Large Road Inv_Data") { // TODO properly detect draw bridges
-                var oldAi = __instance.gameObject.GetComponent<NetAI>();
-                MovableBridgeRoadAI newAi = __instance.gameObject.AddComponent<MovableBridgeRoadAI>().GetCopyOf(oldAi);
+            if (!Mod.IsInGame) return;
 
-                UnityEngine.Object.DestroyImmediate(oldAi);
+            if (__instance.mapEditorCategory == "MovableBridge_Movable" || __instance.mapEditorCategory == "MovableBridge_Static") {
 
-                UnityEngine.Debug.Log($"Net AI replaced!");
+                UnityEngine.Debug.Log($"Adding MovableBridgeRoadAI to ${__instance.name}");
+
+                NetAI oldAI = __instance.gameObject.GetComponent<NetAI>();
+                MovableBridgeRoadAI newAI = __instance.gameObject.AddComponent<MovableBridgeRoadAI>();
+                newAI.GetCopyOf(oldAI);
+
+                UnityEngine.Object.DestroyImmediate(oldAI);
             }
         }
     }

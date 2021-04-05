@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if DEBUG
+using System;
 using ColossalFramework;
 using ColossalFramework.Math;
 using HarmonyLib;
@@ -97,3 +98,4 @@ namespace MovableBridge {
         }
     }
 }
+#endif

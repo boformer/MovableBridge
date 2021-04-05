@@ -56,11 +56,12 @@ namespace MovableBridge {
                     }
                 }
             }
-
+#if DEBUG
             if (InputListener.slowDown) {
                 float targetSpeed = Mathf.Min(maxSpeed, 1f);
                 maxSpeed = CalculateMaxSpeed(0f, targetSpeed, maxBraking);
             }
+#endif
         }
 
         private static float HandleMovableBridge(ushort buildingID, ref Building buildingData, Quad2 searchConeQuad, Quad2 passingQuad, float minY, float maxY, float maxSpeed, float vehicleTopY) {

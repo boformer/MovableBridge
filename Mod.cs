@@ -15,5 +15,14 @@ namespace MovableBridge {
         public void OnDisabled() {
             if (HarmonyHelper.IsHarmonyInstalled) Patcher.Unpatch();
         }
+
+        public static bool IsInGame {
+            get {
+                var updateMode = SimulationManager.instance.m_metaData.m_updateMode;
+                return updateMode == SimulationManager.UpdateMode.NewGameFromMap ||
+                       updateMode == SimulationManager.UpdateMode.NewGameFromScenario ||
+                       updateMode == SimulationManager.UpdateMode.LoadGame;
+            }
+        }
     }
 }
