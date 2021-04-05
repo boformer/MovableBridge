@@ -69,7 +69,7 @@ namespace MovableBridge {
             if (!(buildingInfo.m_buildingAI is MovableBridgeAI)) return float.MaxValue;
 
             MovableBridgeAI movableBridgeAi = (MovableBridgeAI)buildingInfo.m_buildingAI;
-            float bridgeClearance = buildingData.m_position.y + movableBridgeAi.m_bridgeClearance;
+            float bridgeClearance = buildingData.m_position.y + movableBridgeAi.m_BridgeClearance;
             if (bridgeClearance > vehicleTopY) {
                 return float.MaxValue;
             }

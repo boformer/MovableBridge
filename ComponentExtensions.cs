@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Reflection;
-using UnityEngine;
 
 namespace MovableBridge {
     public static class ComponentExtensions {
-        public static T GetCopyOf<T, U>(this T comp, U other) where T : Component {
+        public static T CopyFrom<T, U>(this T comp, U other) where T : class {
             Type type;
             if (other.GetType().IsInstanceOfType(comp)) {
                 type = other.GetType();

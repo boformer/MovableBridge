@@ -20,11 +20,18 @@ namespace MovableBridge {
         public const ushort FLAG_SHIP_PASSING_BRIDGE = 0b_0010_0000_0000_0000;
 
         private const byte kMinClosedTicks = 4;
-        
-        public byte m_PreOpeningDuration = 2;
-        public byte m_OpeningDuration = 1;
-        public byte m_ClosingDuration = 1;
-        public float m_bridgeClearance = 4f;
+
+        [CustomizableProperty("Pre Opening Duration", "Movable Bridge")]
+        public int m_PreOpeningDuration = 2;
+
+        [CustomizableProperty("Opening Duration", "Movable Bridge")]
+        public int m_OpeningDuration = 1;
+
+        [CustomizableProperty("Closing Duration", "Movable Bridge")]
+        public int m_ClosingDuration = 1;
+
+        [CustomizableProperty("BridgeClearance", "Movable Bridge")]
+        public float m_BridgeClearance = 4f;
 
         public static ushort GetBridgeState(ref Building data) {
             return (ushort)(data.m_customBuffer1 & STATE_MASK);

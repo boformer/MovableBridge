@@ -24,5 +24,13 @@ namespace MovableBridge {
                        updateMode == SimulationManager.UpdateMode.LoadGame;
             }
         }
+
+        public static bool IsInAssetEditor {
+            get {
+                var updateMode = SimulationManager.instance.m_metaData.m_updateMode;
+                return updateMode == SimulationManager.UpdateMode.NewAsset ||
+                       updateMode == SimulationManager.UpdateMode.LoadAsset;
+            }
+        }
     }
 }
