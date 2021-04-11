@@ -119,12 +119,12 @@ namespace MovableBridge {
             if (prevTargetNodeId == nextSourceNodeId) {
                 NetNode.Flags flags = netManager.m_nodes.m_buffer[prevTargetNodeId].m_flags;
                 if (flags.IsFlagSet(NetNode.Flags.CustomTrafficLights)) {
-                    var previousSegmentAi = netManager.m_segments.m_buffer[prevSegmentID].Info.m_netAI;
-                    if (!(previousSegmentAi is MovableBridgeRoadAI)) {
+                    var previousSegmentAI = netManager.m_segments.m_buffer[prevSegmentID].Info.m_netAI;
+                    if (!(previousSegmentAI is MovableBridgeRoadAI)) {
                         return true;
                     }
-                    var nextSegmentAi = netManager.m_segments.m_buffer[nextSegmentID].Info.m_netAI;
-                    if (!(nextSegmentAi is MovableBridgeRoadAI)) {
+                    var nextSegmentAI = netManager.m_segments.m_buffer[nextSegmentID].Info.m_netAI;
+                    if (!(nextSegmentAI is MovableBridgeRoadAI)) {
                         return true;
                     }
 
@@ -132,7 +132,7 @@ namespace MovableBridge {
                     uint num6n = (uint)(prevTargetNodeId << 8) / 32768u;
                     RoadBaseAI.GetTrafficLightState(prevTargetNodeId, ref netManager.m_segments.m_buffer[prevSegmentID], currentFrameIndex - num6n, out RoadBaseAI.TrafficLightState vehicleLightState, out RoadBaseAI.TrafficLightState pedestrianLightState, out bool vehicles, out bool pedestrians);
 
-                    Debug.Log($"CheckSegmentChange on bridge! state: ${vehicleLightState}");
+                    //Debug.Log($"CheckSegmentChange on bridge! state: ${vehicleLightState}");
                     if (vehicleLightState == RoadBaseAI.TrafficLightState.Red) {
                         return true;
                     }

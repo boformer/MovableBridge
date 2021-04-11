@@ -2,7 +2,7 @@
 using UnityEngine;
 
 namespace MovableBridge {
-    public class MovableBridgeRoadAI : RoadBridgeAI {
+    public class MovableBridgeTrainTrackAI : TrainTrackBridgeAI {
         public bool m_Movable;
 
         public override void UpdateNodeFlags(ushort nodeID, ref NetNode data) {
@@ -18,10 +18,10 @@ namespace MovableBridge {
                 if (segment != 0) {
                     segmentCount++;
                     NetInfo segmentInfo = netManager.m_segments.m_buffer[segment].Info;
-                    if (segmentInfo != null && segmentInfo.m_netAI is MovableBridgeRoadAI bridgeAI) {
-                        if (bridgeAI.m_Movable) 
+                    if (segmentInfo != null && segmentInfo.m_netAI is MovableBridgeTrainTrackAI bridgeAI) {
+                        if (bridgeAI.m_Movable)
                             movableSegmentCount++;
-                        else 
+                        else
                             staticSegmentCount++;
                     }
                 }
@@ -31,10 +31,21 @@ namespace MovableBridge {
             }
         }
 
+        //public override bool IsCombatible(NetInfo with) {
+        //    if (with.m_netAI is MovableBridgeTrainTrackAI bridgeAI) {
+        //        return base.IsCombatible(with) && bridgeAI.m_Movable == m_Movable;
+        //    }
+        //    return base.IsCombatible(with);
+        //}
+
+        public override float GetNodeInfoPriority(ushort segmentID, ref NetSegment data) {
+            return base.GetNodeInfoPriority(segmentID, ref data) + (m_Movable ? 0f : 1f);
+        }
+
         public override void SimulationStep(ushort nodeID, ref NetNode data) {
             bool trafficLights = data.m_flags.IsFlagSet(NetNode.Flags.TrafficLights) && data.m_flags.IsFlagSet(NetNode.Flags.CustomTrafficLights);
             if (trafficLights) {
-                TrafficLightSimulationStep(nodeID, ref data);
+                LevelCrossingSimulationStep(nodeID, ref data);
                 data.m_flags &= ~NetNode.Flags.TrafficLights;
             }
 
@@ -45,7 +56,7 @@ namespace MovableBridge {
             }
         }
 
-        public new static void TrafficLightSimulationStep(ushort nodeID, ref NetNode data) {
+        public new static void LevelCrossingSimulationStep(ushort nodeID, ref NetNode data) {
             NetManager netManager = Singleton<NetManager>.instance;
             uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
 
@@ -64,20 +75,20 @@ namespace MovableBridge {
                     }
                 }
 
-                GetTrafficLightState(nodeID, ref netManager.m_segments.m_buffer[segmentID], currentFrameIndex - 256, out TrafficLightState vehicleLightState, out TrafficLightState _, out _, out _);
+                RoadBaseAI.GetTrafficLightState(nodeID, ref netManager.m_segments.m_buffer[segmentID], currentFrameIndex - 256, out RoadBaseAI.TrafficLightState vehicleLightState, out RoadBaseAI.TrafficLightState _, out _, out _);
 
-                vehicleLightState &= ~TrafficLightState.IsChanging;
+                vehicleLightState &= ~RoadBaseAI.TrafficLightState.IsChanging;
 
                 if (!segmentGreen) {
-                    if ((vehicleLightState & TrafficLightState.Red) == 0) {
-                        vehicleLightState = TrafficLightState.GreenToRed;
+                    if ((vehicleLightState & RoadBaseAI.TrafficLightState.Red) == 0) {
+                        vehicleLightState = RoadBaseAI.TrafficLightState.GreenToRed;
                     }
                 } else {
-                    if ((vehicleLightState & TrafficLightState.Red) != 0) {
-                        vehicleLightState = TrafficLightState.RedToGreen;
+                    if ((vehicleLightState & RoadBaseAI.TrafficLightState.Red) != 0) {
+                        vehicleLightState = RoadBaseAI.TrafficLightState.RedToGreen;
                     }
                 }
-                SetTrafficLightState(nodeID, ref netManager.m_segments.m_buffer[segmentID], currentFrameIndex, vehicleLightState, TrafficLightState.Red, false, false);
+                RoadBaseAI.SetTrafficLightState(nodeID, ref netManager.m_segments.m_buffer[segmentID], currentFrameIndex, vehicleLightState, RoadBaseAI.TrafficLightState.Red, false, false);
             }
         }
     }
