@@ -1,4 +1,5 @@
-﻿using ColossalFramework;
+﻿using System;
+using ColossalFramework;
 using UnityEngine;
 
 namespace MovableBridge {
@@ -26,7 +27,7 @@ namespace MovableBridge {
                     }
                 }
             }
-            if (segmentCount == 2 && movableSegmentCount == 1 && staticSegmentCount == 1) {
+            if (segmentCount > 1 && movableSegmentCount == 0 && staticSegmentCount == 1) {
                 data.m_flags |= NetNode.Flags.CustomTrafficLights | NetNode.Flags.LevelCrossing | NetNode.Flags.TrafficLights;
             }
         }
@@ -39,7 +40,24 @@ namespace MovableBridge {
         //}
 
         public override float GetNodeInfoPriority(ushort segmentID, ref NetSegment data) {
-            return base.GetNodeInfoPriority(segmentID, ref data) + (m_Movable ? 0f : 1f);
+            return !m_Movable ? float.MaxValue : base.GetNodeInfoPriority(segmentID, ref data);
+        }
+
+        public override void GetNodeState(ushort nodeID, ref NetNode nodeData, ushort segmentID, ref NetSegment segmentData, out NetNode.Flags flags, out Color color) {
+            flags = nodeData.m_flags;
+            color = Color.gray.gamma;
+
+            if ((nodeData.m_flags & NetNode.Flags.TrafficLights) != 0) {
+                NetManager netManager = NetManager.instance;
+                for (int s = 0; s < 8; s++) {
+                    ushort segment = nodeData.GetSegment(s);
+                    if (segment != 0) {
+                        if (netManager.m_segments.m_buffer[segment].m_infoIndex != nodeData.m_infoIndex) {
+                            GetLevelCrossingNodeState(nodeID, ref nodeData, segment, ref netManager.m_segments.m_buffer[segment], ref flags, ref color);
+                        }
+                    }
+                }
+            }
         }
 
         public override void SimulationStep(ushort nodeID, ref NetNode data) {
@@ -68,9 +86,7 @@ namespace MovableBridge {
                 bool segmentGreen = green;
                 if (!segmentGreen) {
                     NetSegment segmentData = netManager.m_segments.m_buffer[segmentID];
-                    ushort otherNodeID = segmentData.m_startNode != nodeID ? segmentData.m_startNode : segmentData.m_endNode;
-                    NetNode otherNodeData = netManager.m_nodes.m_buffer[otherNodeID];
-                    if (otherNodeData.m_flags.IsFlagSet(NetNode.Flags.CustomTrafficLights)) {
+                    if (segmentData.m_infoIndex == data.m_infoIndex) {
                         segmentGreen = true;
                     }
                 }

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MovableBridge {
     [HarmonyPatch(typeof(FerryAI), "CheckOtherVehicles")]
     public static class FerryAICheckOtherVehiclesPatch {
-        public const float kSearchConeLength = 50f;
+        public const float kSearchConeLength = 100f;
         private const float kPassingSpeed = 3f;
         private const float kOpeningSpeed = 1f;
 

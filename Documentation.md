@@ -1,11 +1,11 @@
-﻿Movable Bridge Mod: Documentation for Asset Creators
+Movable Bridge Mod: Documentation for Asset Creators
 ====================================================
 
 A movable bridge is an animated building with integrated network segments. Usually it consists of the following elements:
 
 * A main building, consisting of the moving part of the bridge
-* Custom Animation Loader `animations.unity3d` file for the opening/closing animation of the bridge
-* Multiple sub-buildings for the static bridge parts
+* Custom Animation Loader `animations.unity3d` file for the opening/closing animation of main building
+* Sub-buildings for the static bridge parts
 * An invisible road or train bridge network for the moving part of the bridge
 * A visible road or train bridge network for the static parts of the bridge
 * A shader-animated barrier or traffic prop
