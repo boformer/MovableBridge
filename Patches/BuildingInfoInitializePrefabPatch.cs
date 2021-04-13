@@ -7,9 +7,15 @@ namespace MovableBridge {
             if (!Mod.IsInGame && !Mod.IsInAssetEditor) return;
 
             if (__instance.editorCategory == "MovableBridge") {
-                UnityEngine.Debug.Log($"Adding MovableBridgeAI to ${__instance.name}");
 
                 BuildingAI oldAI = __instance.gameObject.GetComponent<BuildingAI>();
+                if (oldAI is MovableBridgeAI) {
+                    UnityEngine.Debug.Log($"MovableBridgeAI already set for ${__instance.name}");
+                    return;
+                }
+
+                UnityEngine.Debug.Log($"Adding MovableBridgeAI to ${__instance.name}");
+
                 MovableBridgeAI newAI = __instance.gameObject.AddComponent<MovableBridgeAI>();
                 newAI.m_electricityConsumption = 0;
                 newAI.m_waterConsumption = 0;

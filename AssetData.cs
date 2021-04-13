@@ -37,7 +37,7 @@ namespace MovableBridge {
                     if (userAssetData == null) {
                         userAssetData = new AssetDataWrapper.UserAssetData();
                     }
-                    AssetData.OnAssetLoadedImpl(listingMetaData.name, ToolsModifierControl.toolController.m_editPrefabInfo, userAssetData.Data, true);
+                    AssetData.OnAssetLoadedImpl(listingMetaData.name, ToolsModifierControl.toolController.m_editPrefabInfo, userAssetData.Data);
                 }
             } catch (Exception e) {
                 Debug.LogError(e);
@@ -83,11 +83,11 @@ namespace MovableBridge {
 
         public override void OnAssetLoaded(string name, object asset, Dictionary<string, byte[]> userData) {
             if (asset is PrefabInfo prefab && prefab.editorCategory == "MovableBridge") {
-                OnAssetLoadedImpl(name, prefab, userData, false);
+                OnAssetLoadedImpl(name, prefab, userData);
             }
         }
 
-        public static void OnAssetLoadedImpl(string name, PrefabInfo prefab, Dictionary<string, byte[]> userData, bool editor) {
+        public static void OnAssetLoadedImpl(string name, PrefabInfo prefab, Dictionary<string, byte[]> userData) {
             if (!userData.TryGetValue(kDataKey, out var bytes)) {
                 return;
             }
@@ -104,11 +104,7 @@ namespace MovableBridge {
                 }
             }
 
-            if (editor) {
-                ApplyCustomAI(prefab, data);
-            } else {
-                ApplyData(prefab, data);
-            }
+            ApplyCustomAI(prefab, data);
         }
 
         private static MovableBridgeAIData StripCustomAI(PrefabInfo prefab) {
@@ -127,7 +123,6 @@ namespace MovableBridge {
 
                 buildingInfo.m_buildingAI = vanillaAI;
                 vanillaAI.m_info = buildingInfo;
-                vanillaAI.InitializePrefab();
 
                 UnityEngine.Debug.Log("Stripped " + data.ToString());
 
@@ -138,24 +133,23 @@ namespace MovableBridge {
         }
 
         private static void ApplyCustomAI(PrefabInfo prefab, MovableBridgeAIData data) {
-            if (prefab is BuildingInfo buildingInfo && buildingInfo.m_buildingAI is PlayerBuildingAI vanillaAI) {
+            if (prefab is BuildingInfo buildingInfo && buildingInfo.m_buildingAI is PlayerBuildingAI existingAI) {
                 UnityEngine.Debug.Log("Creating MovableBridgeAI and applying " + data.ToString());
-                MovableBridgeAI customAI = buildingInfo.gameObject.AddComponent<MovableBridgeAI>();
-                customAI.CopyFrom(data);
-                customAI.CopyFrom(vanillaAI);
 
-                UnityEngine.Object.DestroyImmediate(vanillaAI);
-
-                buildingInfo.m_buildingAI = customAI;
-                customAI.m_info = buildingInfo;
-                customAI.InitializePrefab();
-            }
-        }
-
-        private static void ApplyData(PrefabInfo prefab, MovableBridgeAIData data) {
-            if (prefab is BuildingInfo buildingInfo && buildingInfo.m_buildingAI is MovableBridgeAI customAI) {
-                UnityEngine.Debug.Log("Applying " + data.ToString());
-                customAI.CopyFrom(data);
+                if (existingAI is MovableBridgeAI customAI) {
+                    UnityEngine.Debug.Log("Applying " + data.ToString());
+                    data.CopyTo(customAI);
+                } else {
+                    UnityEngine.Debug.Log("Creating MovableBridgeAI and applying " + data.ToString());
+                    customAI = buildingInfo.gameObject.AddComponent<MovableBridgeAI>();
+                    data.CopyTo(customAI);
+                    customAI.CopyFrom(existingAI);
+                    UnityEngine.Object.DestroyImmediate(existingAI);
+                    
+                    buildingInfo.m_buildingAI = customAI;
+                    customAI.m_info = buildingInfo;
+                    customAI.InitializePrefab();
+                }
             }
         }
     }
@@ -170,11 +164,25 @@ namespace MovableBridge {
             return $"{nameof(m_PreOpeningDuration)}: {m_PreOpeningDuration}, {nameof(m_OpeningDuration)}: {m_OpeningDuration}, {nameof(m_ClosingDuration)}: {m_ClosingDuration}, {nameof(m_BridgeClearance)}: {m_BridgeClearance}";
         }
 
+        public void CopyFrom(MovableBridgeAI ai) {
+            m_PreOpeningDuration = ai.m_PreOpeningDuration;
+            m_OpeningDuration = ai.m_OpeningDuration;
+            m_ClosingDuration = ai.m_ClosingDuration;
+            m_BridgeClearance = ai.m_BridgeClearance;
+        }
+
+        public void CopyTo(MovableBridgeAI ai) {
+            ai.m_PreOpeningDuration = m_PreOpeningDuration;
+            ai.m_OpeningDuration = m_OpeningDuration;
+            ai.m_ClosingDuration = m_ClosingDuration;
+            ai.m_BridgeClearance = m_BridgeClearance;
+        }
+
         public void Read(PackageReader reader) {
             m_PreOpeningDuration = reader.ReadInt32();
             m_OpeningDuration = reader.ReadInt32();
             m_ClosingDuration = reader.ReadInt32();
-            m_BridgeClearance = reader.ReadInt32();
+            m_BridgeClearance = reader.ReadSingle();
         }
 
         public void Write(PackageWriter writer) {
