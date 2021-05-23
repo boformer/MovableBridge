@@ -12,12 +12,18 @@ namespace MovableBridge {
         public const ushort STATE_BRIDGE_CLOSED = 0b_0000_0000_0000;
         public const ushort STATE_BRIDGE_WAITING_FOR_OPEN = 0b_0001_0000_0000;
         public const ushort STATE_BRIDGE_OPENING = 0b_0010_0000_0000;
-        public const ushort STATE_BRIDGE_OPEN = 0b_0011_0000_0000;
-        public const ushort STATE_BRIDGE_WAITING_FOR_CLOSE = 0b_0100_0000_0000;
-        public const ushort STATE_BRIDGE_CLOSING = 0b_0101_0000_0000;
+        public const ushort STATE_BRIDGE_OPEN_LEFT = 0b_0011_0000_0000;
+        public const ushort STATE_BRIDGE_WAITING_LEFT = 0b_0100_0000_0000;
+        public const ushort STATE_BRIDGE_OPEN_RIGHT = 0b_0101_0000_0000;
+        public const ushort STATE_BRIDGE_WAITING_RIGHT = 0b_0110_0000_0000;
+        public const ushort STATE_BRIDGE_OPEN_BOTH = 0b_0111_0000_0000;
+        public const ushort STATE_BRIDGE_WAITING_BOTH = 0b_1000_0000_0000;
+        public const ushort STATE_BRIDGE_CLOSING = 0b_1001_0000_0000;
 
         public const ushort FLAG_SHIP_NEAR_BRIDGE = 0b_0001_0000_0000_0000;
-        public const ushort FLAG_SHIP_PASSING_BRIDGE = 0b_0010_0000_0000_0000;
+        public const ushort FLAG_SHIP_PASSING_BRIDGE_LEFT = 0b_0010_0000_0000_0000;
+        public const ushort FLAG_SHIP_PASSING_BRIDGE_RIGHT = 0b_0100_0000_0000_0000;
+        public const ushort FLAG_SHIP_PASSING_BRIDGE_ANY = FLAG_SHIP_PASSING_BRIDGE_LEFT | FLAG_SHIP_PASSING_BRIDGE_RIGHT;
 
         private const byte kMinClosedTicks = 4;
 
@@ -29,6 +35,9 @@ namespace MovableBridge {
 
         [CustomizableProperty("Closing Duration", "Movable Bridge")]
         public int m_ClosingDuration = 1;
+
+        [CustomizableProperty("Allow Two-way ship traffic", "Movable Bridge")]
+        public bool m_AllowTwoWayTraffic = false;
 
         [CustomizableProperty("BridgeClearance", "Movable Bridge")]
         public float m_BridgeClearance = 4f;
@@ -42,12 +51,13 @@ namespace MovableBridge {
             subMode = InfoManager.SubInfoMode.Default;
         }
 
+#if DEBUG
         public override string GetLocalizedStats(ushort buildingID, ref Building data) {
             byte timer = (byte)(data.m_customBuffer1 & TIMER_MASK);
             ushort state = GetBridgeState(ref data);
             string formattedState = FormatState(state);
             bool shipNearBridge = (data.m_customBuffer1 & FLAG_SHIP_NEAR_BRIDGE) != 0;
-            bool shipPassingBridge = (data.m_customBuffer1 & FLAG_SHIP_PASSING_BRIDGE) != 0;
+            bool shipPassingBridge = (data.m_customBuffer1 & FLAG_SHIP_PASSING_BRIDGE_ANY) != 0;
             return formattedState + "\n" + $"timer: {timer}, shipNearBridge: {shipNearBridge}, shipPassingBridge: {shipPassingBridge}";
         }
 
@@ -59,16 +69,25 @@ namespace MovableBridge {
                     return "Waiting for pedestrians and cars to leave";
                 case STATE_BRIDGE_OPENING:
                     return "Bridge is opening";
-                case STATE_BRIDGE_OPEN:
-                    return "Bridge is open";
-                case STATE_BRIDGE_WAITING_FOR_CLOSE:
-                    return "Waiting for ships to pass through";
+                case STATE_BRIDGE_OPEN_LEFT:
+                    return "Bridge is open for left side";
+                case STATE_BRIDGE_WAITING_LEFT:
+                    return "Waiting for ships from left side to pass through";
+                case STATE_BRIDGE_OPEN_RIGHT:
+                    return "Bridge is open for right side";
+                case STATE_BRIDGE_WAITING_RIGHT:
+                    return "Waiting for ships from right side to pass through";
+                case STATE_BRIDGE_OPEN_BOTH:
+                    return "Bridge is open for both sides";
+                case STATE_BRIDGE_WAITING_BOTH:
+                    return "Waiting for ships from both sides to pass through";
                 case STATE_BRIDGE_CLOSING:
                     return "Bridge is closing";
                 default:
                     return "";
             }
         }
+#endif
 
         public override void CreateBuilding(ushort buildingID, ref Building data) {
             base.CreateBuilding(buildingID, ref data);
@@ -79,7 +98,8 @@ namespace MovableBridge {
             byte timer = (byte)(data.m_customBuffer1 & TIMER_MASK);
             ushort state = GetBridgeState(ref data);
             bool shipNearBridge = (data.m_customBuffer1 & FLAG_SHIP_NEAR_BRIDGE) != 0;
-            bool shipPassingBridge = (data.m_customBuffer1 & FLAG_SHIP_PASSING_BRIDGE) != 0;
+            bool shipPassingBridgeLeft = (data.m_customBuffer1 & FLAG_SHIP_PASSING_BRIDGE_LEFT) != 0;
+            bool shipPassingBridgeRight = (data.m_customBuffer1 & FLAG_SHIP_PASSING_BRIDGE_RIGHT) != 0;
             if (state == STATE_BRIDGE_CLOSED) {
                 if (timer < byte.MaxValue) timer++;
 
@@ -109,40 +129,87 @@ namespace MovableBridge {
                 timer++;
                 //Debug.Log("opening, increasing timer");
 
-                // TODO instead, wait for animation to finish (check Animator)
-
                 if (timer >= m_OpeningDuration) {
                     //Debug.Log("opening, timer greater 0, bridge is open");
-                    state = STATE_BRIDGE_OPEN;
+                    state = m_AllowTwoWayTraffic ? STATE_BRIDGE_OPEN_BOTH : STATE_BRIDGE_OPEN_LEFT;
                     timer = 0;
                 }
 
-            } else if (state == STATE_BRIDGE_OPEN) {
+            } else if (state == STATE_BRIDGE_OPEN_LEFT) {
                 timer++;
-                //Debug.Log("open, increasing timer");
+                //Debug.Log("open left, increasing timer");
 
                 if (timer > 0) {
-                    if (shipPassingBridge) {
-                        //Debug.Log("open, ships still passing, waiting for close");
-                        state = STATE_BRIDGE_WAITING_FOR_CLOSE;
+                    if (shipPassingBridgeLeft) {
+                        //Debug.Log("open left, ships from left side still passing, waiting for close");
+                        state = STATE_BRIDGE_WAITING_LEFT;
                         timer = 0;
                     } else {
-                        //Debug.Log("open, no ships passing bridge, closing");
+                        //Debug.Log("open left, no ships passing bridge from left side, switching to right side traffic");
+                        state = STATE_BRIDGE_OPEN_RIGHT;
+                        timer = 0;
+                    }
+                }
+            } else if (state == STATE_BRIDGE_WAITING_LEFT) {
+                //Debug.Log("waiting left");
+
+                if (!shipPassingBridgeLeft) {
+                    //Debug.Log("waiting left, no ships passing bridge from left side, switching to right side traffic");
+                    state = STATE_BRIDGE_OPEN_RIGHT;
+                    timer = 0;
+                } else {
+                    //Debug.Log("waiting left, ships still passing bridge");
+                }
+            } else if (state == STATE_BRIDGE_OPEN_RIGHT) {
+                timer++;
+                //Debug.Log("open right, increasing timer");
+
+                if (timer > 0) {
+                    if (shipPassingBridgeRight) {
+                        //Debug.Log("open right, ships from right side still passing, waiting for close");
+                        state = STATE_BRIDGE_WAITING_RIGHT;
+                        timer = 0;
+                    } else {
+                        //Debug.Log("open right, no ships passing bridge from right side, switching to right side traffic");
                         state = STATE_BRIDGE_CLOSING;
                         timer = 0;
                     }
                 }
-            } else if (state == STATE_BRIDGE_WAITING_FOR_CLOSE) {
-                //Debug.Log("waiting for close");
+            } else if (state == STATE_BRIDGE_WAITING_RIGHT) {
+                //Debug.Log("waiting right");
 
-                if (!shipPassingBridge) {
-                    //Debug.Log("waiting for close, no ships passing bridge, closing");
+                if (!shipPassingBridgeRight) {
+                    //Debug.Log("waiting right, no ships passing bridge, closing");
                     state = STATE_BRIDGE_CLOSING;
                     timer = 0;
+                } else {
+                    //Debug.Log("waiting right, ships still passing bridge");
                 }
-                //} else {
-                //    Debug.Log("waiting for close, ships still passing bridge");
-                //}
+            } else if (state == STATE_BRIDGE_OPEN_BOTH) {
+                timer++;
+                //Debug.Log("open both, increasing timer");
+
+                if (timer > 0) {
+                    if (shipPassingBridgeLeft || shipPassingBridgeRight) {
+                        //Debug.Log("open both, ships still passing, waiting for close");
+                        state = STATE_BRIDGE_WAITING_BOTH;
+                        timer = 0;
+                    } else {
+                        //Debug.Log("open both, no ships passing bridge, closing");
+                        state = STATE_BRIDGE_CLOSING;
+                        timer = 0;
+                    }
+                }
+            } else if (state == STATE_BRIDGE_WAITING_BOTH) {
+                //Debug.Log("waiting both");
+
+                if (!shipPassingBridgeLeft && !shipPassingBridgeRight) {
+                    //Debug.Log("waiting both, no ships passing bridge, closing");
+                    state = STATE_BRIDGE_CLOSING;
+                    timer = 0;
+                } else {
+                    //Debug.Log("waiting right/both, ships still passing bridge");
+                }
             } else if (state == STATE_BRIDGE_CLOSING) {
                 timer++;
                 //Debug.Log("closing, increasing timer");
@@ -168,7 +235,7 @@ namespace MovableBridge {
             int animationState = 0;
             if (state == STATE_BRIDGE_WAITING_FOR_OPEN) {
                 animationState = 1;
-            } else if (state == STATE_BRIDGE_OPENING || state == STATE_BRIDGE_OPEN || state == STATE_BRIDGE_WAITING_FOR_CLOSE) {
+            } else if (state >= STATE_BRIDGE_OPENING && state <= STATE_BRIDGE_WAITING_BOTH) {
                 animationState = 2;
             } else if (state == STATE_BRIDGE_CLOSING) {
                 animationState = 1;

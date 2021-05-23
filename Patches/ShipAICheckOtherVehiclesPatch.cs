@@ -28,9 +28,9 @@ namespace MovableBridge {
             };
 
             float halfWidth = size.x / 2;
-            Quad2 quad01 = GetSegmentQuad(vehicleData.m_targetPos0, vehicleData.m_targetPos1, halfWidth);
-            Quad2 quad12 = GetSegmentQuad(vehicleData.m_targetPos1, vehicleData.m_targetPos2, halfWidth);
-            Quad2 quad23 = GetSegmentQuad(vehicleData.m_targetPos2, vehicleData.m_targetPos3, halfWidth);
+            Quad2 quad01 = QuadUtils.GetSegmentQuad(vehicleData.m_targetPos0, vehicleData.m_targetPos1, halfWidth);
+            Quad2 quad12 = QuadUtils.GetSegmentQuad(vehicleData.m_targetPos1, vehicleData.m_targetPos2, halfWidth);
+            Quad2 quad23 = QuadUtils.GetSegmentQuad(vehicleData.m_targetPos2, vehicleData.m_targetPos3, halfWidth);
 
             Vector2 quadMin = Vector2.Min(Vector2.Min(passingQuad.Min(), quad01.Min()), Vector2.Min(quad12.Min(), quad23.Min()));
             Vector2 quadMax = Vector2.Max(Vector2.Max(passingQuad.Max(), quad01.Max()), Vector2.Max(quad12.Max(), quad23.Max()));
@@ -50,17 +50,12 @@ namespace MovableBridge {
                 for (int gridX = minGridX; gridX <= maxGridX; gridX++) {
                     ushort buildingID = buildingManager.m_buildingGrid[gridZ * 270 + gridX];
                     while (buildingID != 0) {
-                        bool passing = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID,
-                            passingQuad, minY, maxY, ItemClass.CollisionType.Terrain);
-                        bool overlap01 = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID,
-                            quad01, minY, maxY, ItemClass.CollisionType.Terrain);
-                        bool overlap12 = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID,
-                            quad12, minY, maxY, ItemClass.CollisionType.Terrain);
-                        bool overlap23 = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID,
-                            quad23, minY, maxY, ItemClass.CollisionType.Terrain);
-                        bool overlap = overlap01 || overlap12 || overlap23;
+                        bool passing = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, passingQuad, minY, maxY, ItemClass.CollisionType.Terrain)
+                                       || buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad01, minY, maxY, ItemClass.CollisionType.Terrain);
+                        bool near = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad12, minY, maxY, ItemClass.CollisionType.Terrain)
+                                       || buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad23, minY, maxY, ItemClass.CollisionType.Terrain);
 
-                        float maxSpeedForBridge = HandleMovableBridge(buildingID, ref buildingManager.m_buildings.m_buffer[buildingID], passing && overlap, overlap, minY, maxY, maxSpeed, vehicleTopY);
+                        float maxSpeedForBridge = HandleMovableBridge(buildingID, ref buildingManager.m_buildings.m_buffer[buildingID], passing, near, minY, maxY, maxSpeed, vehicleTopY, forwardDir);
                         if (maxSpeedForBridge < maxSpeed) {
                             maxSpeed = CalculateMaxSpeed(0f, maxSpeedForBridge, maxBraking);
                         }
@@ -77,18 +72,8 @@ namespace MovableBridge {
 #endif
         }
 
-        private static Quad2 GetSegmentQuad(Vector3 a, Vector3 b, float halfWidth) {
-            Vector2 forwardDir = VectorUtils.XZ(b - a).normalized;
-            Vector2 rightDir = new Vector2(forwardDir.y, -forwardDir.x);
-            return new Quad2 {
-                a = VectorUtils.XZ(a) - halfWidth * rightDir,
-                b = VectorUtils.XZ(a) + halfWidth * rightDir,
-                c = VectorUtils.XZ(b) + halfWidth * rightDir,
-                d = VectorUtils.XZ(b) - halfWidth * rightDir
-            };
-        }
 
-        private static float HandleMovableBridge(ushort buildingID, ref Building buildingData, bool passing, bool pathOverlap, float minY, float maxY, float maxSpeed, float vehicleTopY) {
+        private static float HandleMovableBridge(ushort buildingID, ref Building buildingData, bool passing, bool near, float minY, float maxY, float maxSpeed, float vehicleTopY, Vector2 forwardDir) {
             BuildingInfo buildingInfo = buildingData.Info;
             if (!(buildingInfo.m_buildingAI is MovableBridgeAI)) return float.MaxValue;
 
@@ -98,18 +83,32 @@ namespace MovableBridge {
                 return float.MaxValue;
             }
 
-            if (!passing && !pathOverlap) {
+            if (!passing && !near) {
                 return float.MaxValue;
             }
+
+            Vector2 buildingForwardDir = new Vector2(Mathf.Sin(buildingData.m_angle), Mathf.Cos(buildingData.m_angle));
+            var dot = Vector2.Dot(forwardDir, buildingForwardDir);
+            bool left = dot > 0;
 
             ushort bridgeState = MovableBridgeAI.GetBridgeState(ref buildingData);
             buildingData.m_customBuffer1 |= MovableBridgeAI.FLAG_SHIP_NEAR_BRIDGE;
             if (passing) {
-                buildingData.m_customBuffer1 |= MovableBridgeAI.FLAG_SHIP_PASSING_BRIDGE;
+                buildingData.m_customBuffer1 |= (left ? MovableBridgeAI.FLAG_SHIP_PASSING_BRIDGE_LEFT : MovableBridgeAI.FLAG_SHIP_PASSING_BRIDGE_RIGHT);
             }
-            if (bridgeState == MovableBridgeAI.STATE_BRIDGE_OPEN || (bridgeState == MovableBridgeAI.STATE_BRIDGE_WAITING_FOR_CLOSE && passing)) {
+
+            if (bridgeState == MovableBridgeAI.STATE_BRIDGE_OPEN_LEFT ||
+                (bridgeState == MovableBridgeAI.STATE_BRIDGE_WAITING_LEFT && passing)) {
+                if(left) return float.MaxValue;
+            } else if (bridgeState == MovableBridgeAI.STATE_BRIDGE_OPEN_RIGHT 
+                       || (bridgeState == MovableBridgeAI.STATE_BRIDGE_WAITING_RIGHT && passing)) {
+                if (!left) return float.MaxValue;
+            } else if (bridgeState == MovableBridgeAI.STATE_BRIDGE_OPEN_BOTH 
+                       || (bridgeState == MovableBridgeAI.STATE_BRIDGE_WAITING_BOTH && passing)) {
                 return float.MaxValue;
+
             }
+
             if (!passing) {
                 return kPassingSpeed;
             }

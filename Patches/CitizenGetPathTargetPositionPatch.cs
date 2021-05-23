@@ -13,7 +13,7 @@ namespace MovableBridge {
             var checkSegmentChangeMethodInfo =
                 typeof(CitizenAI).GetMethod("CheckSegmentChange", BindingFlags.NonPublic | BindingFlags.Instance);
             if (checkSegmentChangeMethodInfo == null) {
-                Debug.Log("AiReplace Getting checkSegmentChangeMethodInfo failed...");
+                Debug.Log("Getting checkSegmentChangeMethodInfo failed...");
                 return instructions;
             }
 
@@ -36,7 +36,7 @@ namespace MovableBridge {
                 null
             );
             if (hookMethodInfo == null) {
-                Debug.Log("AiReplace Getting hookMethodInfo failed...");
+                Debug.Log("Getting hookMethodInfo failed...");
                 return instructions;
             }
 
@@ -59,7 +59,7 @@ namespace MovableBridge {
 
             for (int i = 0; i < codes.Count; i++) {
                 if (codes[i].opcode == OpCodes.Call && codes[i].operand == hookMethodInfo) {
-                    Debug.Log("AiReplace transpile hook found");
+                    Debug.Log("transpile hook found");
 
                     codes.InsertRange(i + 1, GetCodeInstructions(stopAtRedPedestrianLightLabel));
                     break;
@@ -72,19 +72,19 @@ namespace MovableBridge {
         static IEnumerable<CodeInstruction> GetCodeInstructions(Label stopAtRedPedestrianLightLabel) {
             var m_segmentFieldInfo = typeof(PathUnit.Position).GetField("m_segment", BindingFlags.Public | BindingFlags.Instance);
             if (m_segmentFieldInfo == null) {
-                Debug.Log("AiReplace Getting m_segmentFieldInfo failed...");
+                Debug.Log("Getting m_segmentFieldInfo failed...");
                 yield break;
             }
 
             var m_offsetFieldInfo = typeof(PathUnit.Position).GetField("m_offset", BindingFlags.Public | BindingFlags.Instance);
             if (m_offsetFieldInfo == null) {
-                Debug.Log("AiReplace Getting m_offsetFieldInfo failed...");
+                Debug.Log("Getting m_offsetFieldInfo failed...");
                 yield break;
             }
 
             var mustStopAtMovableBridgeMethodInfo = typeof(CitizenGetPathTargetPositionPatch).GetMethod(nameof(MustStopAtMovableBridge), BindingFlags.NonPublic | BindingFlags.Static);
             if (mustStopAtMovableBridgeMethodInfo == null) {
-                Debug.Log("AiReplace Getting mustStopAtMovableBridgeMethodInfo failed...");
+                Debug.Log("Getting mustStopAtMovableBridgeMethodInfo failed...");
                 yield break;
             }
 
