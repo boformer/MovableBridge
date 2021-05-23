@@ -6,7 +6,7 @@ using ICities;
 namespace MovableBridge {
     public class Mod : IUserMod {
         public string Name => "Movable Bridge Mod";
-        public string Description => "Functional movable bridges for cars and pedestrians";
+        public string Description => "Functional movable bridges for trains, cars and pedestrians";
 
         public void OnEnabled() {
             HarmonyHelper.DoOnHarmonyReady(Patcher.Patch);

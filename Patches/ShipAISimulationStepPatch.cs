@@ -117,7 +117,6 @@ namespace MovableBridge {
                         bool overlap02 = buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad12, minY, maxY, ItemClass.CollisionType.Terrain);
 
                         if (overlap01 || overlap02) {
-                            UnityEngine.Debug.Log("Overlap ==> 0");
                             return 0f;
                         }
 

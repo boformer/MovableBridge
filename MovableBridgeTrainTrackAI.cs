@@ -60,6 +60,11 @@ namespace MovableBridge {
             }
         }
 
+        public override void SimulationStep(ushort segmentID, ref NetSegment data) {
+            data.m_flags &= ~NetSegment.Flags.Flooded;
+            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem.Flood);
+        }
+
         public override void SimulationStep(ushort nodeID, ref NetNode data) {
             bool trafficLights = data.m_flags.IsFlagSet(NetNode.Flags.TrafficLights) && data.m_flags.IsFlagSet(NetNode.Flags.CustomTrafficLights);
             if (trafficLights) {
@@ -68,6 +73,8 @@ namespace MovableBridge {
             }
 
             base.SimulationStep(nodeID, ref data);
+
+            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem.Flood);
 
             if (trafficLights) {
                 data.m_flags |= NetNode.Flags.TrafficLights;
