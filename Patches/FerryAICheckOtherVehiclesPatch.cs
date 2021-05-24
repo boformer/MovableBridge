@@ -55,7 +55,7 @@ namespace MovableBridge {
                                        || buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad12, minY, maxY, ItemClass.CollisionType.Terrain)
                                        || buildingManager.m_buildings.m_buffer[buildingID].OverlapQuad(buildingID, quad23, minY, maxY, ItemClass.CollisionType.Terrain);
 
-                        float maxSpeedForBridge = HandleMovableBridge(buildingID, ref buildingManager.m_buildings.m_buffer[buildingID], near, overlap, minY, maxY, maxSpeed, vehicleTopY);
+                        float maxSpeedForBridge = HandleMovableBridge(ref vehicleData, buildingID, ref buildingManager.m_buildings.m_buffer[buildingID], near, overlap, minY, maxY, maxSpeed, vehicleTopY);
                         if (maxSpeedForBridge < maxSpeed) {
                             maxSpeed = CalculateMaxSpeed(0f, maxSpeedForBridge, maxBraking);
                         }
@@ -72,7 +72,7 @@ namespace MovableBridge {
 #endif
         }
 
-        private static float HandleMovableBridge(ushort buildingID, ref Building buildingData, bool passing, bool near, float minY, float maxY, float maxSpeed, float vehicleTopY) {
+        private static float HandleMovableBridge(ref Vehicle vehicleData, ushort buildingID, ref Building buildingData, bool passing, bool near, float minY, float maxY, float maxSpeed, float vehicleTopY) {
             BuildingInfo buildingInfo = buildingData.Info;
             if (!(buildingInfo.m_buildingAI is MovableBridgeAI)) return float.MaxValue;
 
@@ -102,6 +102,9 @@ namespace MovableBridge {
             if (!passing) {
                 return kPassingSpeed;
             }
+
+            vehicleData.m_blockCounter = 0;
+
             return 0f;
         }
 
