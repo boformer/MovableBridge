@@ -121,11 +121,11 @@ namespace MovableBridge {
                 if (flags.IsFlagSet(NetNode.Flags.CustomTrafficLights)) {
                     var previousSegmentAI = netManager.m_segments.m_buffer[prevSegmentID].Info.m_netAI;
                     if (!(previousSegmentAI is MovableBridgeRoadAI)) {
-                        return true;
+                        return false;
                     }
                     var nextSegmentAI = netManager.m_segments.m_buffer[nextSegmentID].Info.m_netAI;
                     if (!(nextSegmentAI is MovableBridgeRoadAI)) {
-                        return true;
+                        return false;
                     }
 
                     uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
