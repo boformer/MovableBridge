@@ -5,7 +5,7 @@ using ICities;
 
 namespace MovableBridge {
     public class Mod : IUserMod {
-        public string Name => "Movable Bridge Mod";
+        public string Name => "Movable Bridge Mod - Fixed";
         public string Description => "Functional movable bridges for trains, cars and pedestrians";
 
         public void OnEnabled() {
