@@ -8,11 +8,14 @@ using UnityEngine;
 
 namespace MovableBridge {
     [HarmonyPatch(typeof(CitizenAI), "GetPathTargetPosition")]
-    public static class CitizenGetPathTargetPositionPatch {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator il) {
-            var checkSegmentChangeMethodInfo =
-                typeof(CitizenAI).GetMethod("CheckSegmentChange", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (checkSegmentChangeMethodInfo == null) {
+    public static class CitizenGetPathTargetPositionPatch
+    {
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator il)
+        {
+            var checkSegmentChangeMethodInfo = typeof(CitizenAI).GetMethod("CheckSegmentChange", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (checkSegmentChangeMethodInfo == null)
+            {
                 Debug.Log("Getting checkSegmentChangeMethodInfo failed...");
                 return instructions;
             }
@@ -40,11 +43,21 @@ namespace MovableBridge {
                 return instructions;
             }
 
+            Label stopAtRedPedestrianLightLabel = il.DefineLabel();
+
             var codes = new List<CodeInstruction>(instructions);
 
-            Label stopAtRedPedestrianLightLabel = il.DefineLabel();
+            //string msg = "MoveableBridge citizens:\n";
+            //int c = 0;
+            //foreach (var code in codes)
+            //{
+            //    msg += $"{c++}: {code.opcode} {code.operand}\n";
+            //}
+            //Debug.Log($"stopAtRedPedestrianLightLabel:{stopAtRedPedestrianLightLabel}\n{msg}");
+
             var stopAtRedPedestrianLightLabelFound = false;
-            for (int i = 0; i < codes.Count; i++) {
+            for (int i = 0; i < codes.Count; i++)
+            {
                 if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand == checkSegmentChangeMethodInfo) {
                     if (codes[i + 1].opcode == OpCodes.Brtrue && codes[i + 2].opcode == OpCodes.Call) {
                         codes[i + 2].labels.Add(stopAtRedPedestrianLightLabel);
@@ -52,13 +65,16 @@ namespace MovableBridge {
                     }
                 }
             }
-            if (!stopAtRedPedestrianLightLabelFound) {
+            if (!stopAtRedPedestrianLightLabelFound)
+            {
                 Debug.Log("stopAtRedPedestrianLightLabel not found!");
                 return codes;
             }
 
-            for (int i = 0; i < codes.Count; i++) {
-                if (codes[i].opcode == OpCodes.Call && codes[i].operand == hookMethodInfo) {
+            for (int i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode == OpCodes.Call && codes[i].operand == hookMethodInfo)
+                {
                     Debug.Log("transpile hook found");
 
                     codes.InsertRange(i + 1, GetCodeInstructions(stopAtRedPedestrianLightLabel));
@@ -69,7 +85,8 @@ namespace MovableBridge {
             return codes;
         }
 
-        static IEnumerable<CodeInstruction> GetCodeInstructions(Label stopAtRedPedestrianLightLabel) {
+        static IEnumerable<CodeInstruction> GetCodeInstructions(Label stopAtRedPedestrianLightLabel)
+        {
             var m_segmentFieldInfo = typeof(PathUnit.Position).GetField("m_segment", BindingFlags.Public | BindingFlags.Instance);
             if (m_segmentFieldInfo == null) {
                 Debug.Log("Getting m_segmentFieldInfo failed...");
@@ -100,8 +117,8 @@ namespace MovableBridge {
             yield return new CodeInstruction(OpCodes.Ldloca_S, 4);
             yield return new CodeInstruction(OpCodes.Ldfld, m_offsetFieldInfo);
 
-            //offset (nextOffset)
-            yield return new CodeInstruction(OpCodes.Ldloc, 48);
+            //offset (nextOffset) (original mod by boformer used location 48, but since 1.15.1 it seems to have changed to 50)
+            yield return new CodeInstruction(OpCodes.Ldloc, 50);
 
             //MustStopAtMovableBridge(position.m_segment, position6.m_segment, position.m_offset, offset)
             yield return new CodeInstruction(OpCodes.Call, mustStopAtMovableBridgeMethodInfo);
@@ -110,21 +127,26 @@ namespace MovableBridge {
             yield return new CodeInstruction(OpCodes.Brtrue, stopAtRedPedestrianLightLabel);
         }
 
-        private static bool MustStopAtMovableBridge(ushort prevSegmentID, ushort nextSegmentID, byte prevOffset, byte nextOffset) {
+        private static bool MustStopAtMovableBridge(ushort prevSegmentID, ushort nextSegmentID, byte prevOffset, byte nextOffset)
+        {
             var netManager = NetManager.instance;
 
             ushort prevTargetNodeId = (prevOffset >= 128) ? netManager.m_segments.m_buffer[prevSegmentID].m_endNode : netManager.m_segments.m_buffer[prevSegmentID].m_startNode;
             ushort nextSourceNodeId = (nextOffset >= 128) ? netManager.m_segments.m_buffer[nextSegmentID].m_endNode : netManager.m_segments.m_buffer[nextSegmentID].m_startNode;
 
-            if (prevTargetNodeId == nextSourceNodeId) {
+            if (prevTargetNodeId == nextSourceNodeId)
+            {
                 NetNode.Flags flags = netManager.m_nodes.m_buffer[prevTargetNodeId].m_flags;
-                if (flags.IsFlagSet(NetNode.Flags.CustomTrafficLights)) {
+                if (flags.IsFlagSet(NetNode.Flags.CustomTrafficLights))
+                {
                     var previousSegmentAI = netManager.m_segments.m_buffer[prevSegmentID].Info.m_netAI;
-                    if (!(previousSegmentAI is MovableBridgeRoadAI)) {
+                    if (!(previousSegmentAI is MovableBridgeRoadAI))
+                    {
                         return false;
                     }
                     var nextSegmentAI = netManager.m_segments.m_buffer[nextSegmentID].Info.m_netAI;
-                    if (!(nextSegmentAI is MovableBridgeRoadAI)) {
+                    if (!(nextSegmentAI is MovableBridgeRoadAI))
+                    {
                         return false;
                     }
 
@@ -133,7 +155,8 @@ namespace MovableBridge {
                     RoadBaseAI.GetTrafficLightState(prevTargetNodeId, ref netManager.m_segments.m_buffer[prevSegmentID], currentFrameIndex - num6n, out RoadBaseAI.TrafficLightState vehicleLightState, out RoadBaseAI.TrafficLightState pedestrianLightState, out bool vehicles, out bool pedestrians);
 
                     //Debug.Log($"CheckSegmentChange on bridge! state: ${vehicleLightState}");
-                    if (vehicleLightState == RoadBaseAI.TrafficLightState.Red) {
+                    if (vehicleLightState == RoadBaseAI.TrafficLightState.Red)
+                    {
                         return true;
                     }
                 }
