@@ -43,8 +43,8 @@ namespace MovableBridge {
             return !m_Movable ? float.MaxValue : base.GetNodeInfoPriority(segmentID, ref data);
         }
 
-        public override void GetNodeState(ushort nodeID, ref NetNode nodeData, ushort segmentID, ref NetSegment segmentData, out NetNode.Flags flags, out Color color) {
-            flags = nodeData.m_flags;
+        public override void GetNodeState(ushort nodeID, ref NetNode nodeData, ushort segmentID, ref NetSegment segmentData, out NetNode.FlagsLong flags, out Color color) {
+            flags = nodeData.flags;
             color = Color.gray.gamma;
 
             if ((nodeData.m_flags & NetNode.Flags.TrafficLights) != 0) {
@@ -62,7 +62,7 @@ namespace MovableBridge {
 
         public override void SimulationStep(ushort segmentID, ref NetSegment data) {
             data.m_flags &= ~NetSegment.Flags.Flooded;
-            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem.Flood);
+            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem1.Flood);
         }
 
         public override void SimulationStep(ushort nodeID, ref NetNode data) {
@@ -74,7 +74,7 @@ namespace MovableBridge {
 
             base.SimulationStep(nodeID, ref data);
 
-            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem.Flood);
+            data.m_problems = Notification.RemoveProblems(data.m_problems, Notification.Problem1.Flood);
 
             if (trafficLights) {
                 data.m_flags |= NetNode.Flags.TrafficLights;
